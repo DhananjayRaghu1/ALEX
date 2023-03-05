@@ -31,7 +31,8 @@
  * --time_limit             time limit, in minutes
  * --print_batch_stats      whether to output stats for each batch
  */
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
   auto flags = parse_flags(argc, argv);
   std::string keys_file_path = get_required(flags, "keys_file");
   std::string keys_file_type = get_required(flags, "keys_file_type");
@@ -46,11 +47,16 @@ int main(int argc, char* argv[]) {
 
   // Read keys from file
   auto keys = new KEY_TYPE[total_num_keys];
-  if (keys_file_type == "binary") {
+  if (keys_file_type == "binary")
+  {
     load_binary_data(keys, total_num_keys, keys_file_path);
-  } else if (keys_file_type == "text") {
+  }
+  else if (keys_file_type == "text")
+  {
     load_text_data(keys, total_num_keys, keys_file_path);
-  } else {
+  }
+  else
+  {
     std::cerr << "--keys_file_type must be either 'binary' or 'text'"
               << std::endl;
     return 1;
@@ -59,7 +65,8 @@ int main(int argc, char* argv[]) {
   // Combine bulk loaded keys with randomly generated payloads
   auto values = new std::pair<KEY_TYPE, PAYLOAD_TYPE>[init_num_keys];
   std::mt19937_64 gen_payload(std::random_device{}());
-  for (int i = 0; i < init_num_keys; i++) {
+  for (int i = 0; i < init_num_keys; i++)
+  {
     values[i].first = keys[i];
     values[i].second = static_cast<PAYLOAD_TYPE>(gen_payload());
   }
@@ -67,7 +74,8 @@ int main(int argc, char* argv[]) {
   // Create ALEX and bulk load
   alex::Alex<KEY_TYPE, PAYLOAD_TYPE> index;
   std::sort(values, values + init_num_keys,
-            [](auto const& a, auto const& b) { return a.first < b.first; });
+            [](auto const &a, auto const &b)
+            { return a.first < b.first; });
   index.bulk_load(values, init_num_keys);
 
   // Run workload
@@ -84,27 +92,36 @@ int main(int argc, char* argv[]) {
   PAYLOAD_TYPE sum = 0;
   std::cout << std::scientific;
   std::cout << std::setprecision(3);
-  while (true) {
+  while (true)
+  {
     batch_no++;
 
     // Do lookups
     double batch_lookup_time = 0.0;
-    if (i > 0) {
-      KEY_TYPE* lookup_keys = nullptr;
-      if (lookup_distribution == "uniform") {
+    if (i > 0)
+    {
+      KEY_TYPE *lookup_keys = nullptr;
+      if (lookup_distribution == "uniform")
+      {
         lookup_keys = get_search_keys(keys, i, num_lookups_per_batch);
-      } else if (lookup_distribution == "zipf") {
+      }
+      else if (lookup_distribution == "zipf")
+      {
         lookup_keys = get_search_keys_zipf(keys, i, num_lookups_per_batch);
-      } else {
+      }
+      else
+      {
         std::cerr << "--lookup_distribution must be either 'uniform' or 'zipf'"
                   << std::endl;
         return 1;
       }
       auto lookups_start_time = std::chrono::high_resolution_clock::now();
-      for (int j = 0; j < num_lookups_per_batch; j++) {
+      for (int j = 0; j < num_lookups_per_batch; j++)
+      {
         KEY_TYPE key = lookup_keys[j];
-        PAYLOAD_TYPE* payload = index.get_payload(key);
-        if (payload) {
+        PAYLOAD_TYPE *payload = index.get_payload(key);
+        if (payload)
+        {
           sum += *payload;
         }
       }
@@ -122,7 +139,8 @@ int main(int argc, char* argv[]) {
         std::min(num_inserts_per_batch, total_num_keys - i);
     int num_keys_after_batch = i + num_actual_inserts;
     auto inserts_start_time = std::chrono::high_resolution_clock::now();
-    for (; i < num_keys_after_batch; i++) {
+    for (; i < num_keys_after_batch; i++)
+    {
       index.insert(keys[i], static_cast<PAYLOAD_TYPE>(gen_payload()));
     }
     auto inserts_end_time = std::chrono::high_resolution_clock::now();
@@ -133,7 +151,8 @@ int main(int argc, char* argv[]) {
     cumulative_insert_time += batch_insert_time;
     cumulative_inserts += num_actual_inserts;
 
-    if (print_batch_stats) {
+    if (print_batch_stats)
+    {
       int num_batch_operations = num_lookups_per_batch + num_actual_inserts;
       double batch_time = batch_lookup_time + batch_insert_time;
       long long cumulative_operations = cumulative_lookups + cumulative_inserts;
@@ -156,7 +175,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Check for workload end conditions
-    if (num_actual_inserts < num_inserts_per_batch) {
+    if (num_actual_inserts < num_inserts_per_batch)
+    {
       // End if we have inserted all keys in a workload with inserts
       break;
     }
@@ -164,7 +184,8 @@ int main(int argc, char* argv[]) {
         std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::high_resolution_clock::now() - workload_start_time)
             .count();
-    if (workload_elapsed_time > time_limit * 1e9 * 60) {
+    if (workload_elapsed_time > time_limit * 1e9 * 60)
+    {
       break;
     }
   }
