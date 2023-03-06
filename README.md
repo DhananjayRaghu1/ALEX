@@ -44,7 +44,8 @@ To run the benchmark on a synthetic dataset with 1000 normally-distributed keys:
 --init_num_keys=500 \
 --total_num_keys=1000 \
 --batch_size=1000 \
---insert_frac=0.5
+--insert_frac=0.5 \ 
+--dataset_name
 ```
 
 However, to observe the true performance of ALEX, we must run on a much larger dataset.
@@ -59,7 +60,8 @@ To run one example workload on this dataset:
 --batch_size=1000000 \
 --insert_frac=0.5 \
 --lookup_distribution=zipf \
---print_batch_stats
+--print_batch_stats \ 
+--dataset_name
 ```
 
 You can also run this benchmark on your own dataset.

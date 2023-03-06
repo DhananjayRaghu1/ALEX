@@ -11,6 +11,7 @@
 
 #include "flags.h"
 #include "utils.h"
+#include "save_stats.h"
 
 // Modify these if running your own workload
 #define KEY_TYPE double
@@ -23,6 +24,7 @@
  * --init_num_keys          number of keys to bulk load with
  * --total_num_keys         total number of keys in the keys file
  * --batch_size             number of operations (lookup or insert) per batch
+ * --dataset_name           name of the dataset for benchmark
  *
  * Optional flags:
  * --insert_frac            fraction of operations that are inserts (instead of
@@ -44,6 +46,7 @@ int main(int argc, char *argv[])
       get_with_default(flags, "lookup_distribution", "zipf");
   auto time_limit = stod(get_with_default(flags, "time_limit", "0.5"));
   bool print_batch_stats = get_boolean_flag(flags, "print_batch_stats");
+  std::string dataset_name = get_required(flags, "dataset_name");
 
   // Read keys from file
   auto keys = new KEY_TYPE[total_num_keys];
@@ -61,6 +64,14 @@ int main(int argc, char *argv[])
               << std::endl;
     return 1;
   }
+
+  // writing stats to CSV file
+  StatsWriterCSV csv(std::string(dataset_name+".csv"));
+  // Header
+  csv << "batch"
+      << "lookups"
+      << "inserts"
+      << "operations" << end_row;
 
   // Combine bulk loaded keys with randomly generated payloads
   auto values = new std::pair<KEY_TYPE, PAYLOAD_TYPE>[init_num_keys];
@@ -151,12 +162,16 @@ int main(int argc, char *argv[])
     cumulative_insert_time += batch_insert_time;
     cumulative_inserts += num_actual_inserts;
 
+    int num_batch_operations = 0;
+    double batch_time = 0;
+    long long cumulative_operations = 0;
+    double cumulative_time = 0;
     if (print_batch_stats)
     {
-      int num_batch_operations = num_lookups_per_batch + num_actual_inserts;
-      double batch_time = batch_lookup_time + batch_insert_time;
-      long long cumulative_operations = cumulative_lookups + cumulative_inserts;
-      double cumulative_time = cumulative_lookup_time + cumulative_insert_time;
+      num_batch_operations = num_lookups_per_batch + num_actual_inserts;
+      batch_time = batch_lookup_time + batch_insert_time;
+      cumulative_operations = cumulative_lookups + cumulative_inserts;
+      cumulative_time = cumulative_lookup_time + cumulative_insert_time;
       std::cout << "Batch " << batch_no
                 << ", cumulative ops: " << cumulative_operations
                 << "\n\tbatch throughput:\t"
@@ -173,6 +188,9 @@ int main(int argc, char *argv[])
                 << cumulative_operations / cumulative_time * 1e9 << " ops/sec"
                 << std::endl;
     }
+
+    // writing stats to CSV file
+    csv << batch_no << cumulative_lookups / cumulative_lookup_time * 1e9 << cumulative_inserts / cumulative_insert_time * 1e9 << cumulative_operations / cumulative_time * 1e9 << end_row;
 
     // Check for workload end conditions
     if (num_actual_inserts < num_inserts_per_batch)
