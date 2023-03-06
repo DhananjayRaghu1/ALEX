@@ -1,0 +1,61 @@
+B+ Tree
+---------------
+B+ Tree is the default range index in almost all DB systems 
+
+    - Traverse the tree using comparisons using binary search
+    - Supports mixed workloads - range queries, inserts, updates, delete etc.
+    
+Learned Index (Kraska et. al)
+-------------------------------
+Based on ML and meant to replace B+ tree
+
+    - Tree like structure like B+ tree
+    - Perform lookup over an array of sorted keys
+    - Unlike the B+ tree, traverse the tree using computations (models) -> each node stores a linear regression model 
+    - For lookup, it starts from the root node and it performs inference on the model taking the input as the key, in this way traverse to the leaf model that predicts the position of the key on the sorted array of keys 
+    - For prediction error rectification, performs a binary search over the lower and upper worst case error bounds
+    
+    - Only for read only data, doe snot support writes
+    - Advantages: 3x faster reads, 10x smaller index size -> models are more faster and compact
+                  - High performance from fewer nodes than the B+ 
+    
+ALEX
+---------
+Best of both the worlds
+    - Read/Write capable
+    - Faster than B+ and Learned Index
+    - Smaller index size than B+ and Learned Index
+    
+    Core Structure
+        - Dynamic Tree structure
+                - Each node can merge/split/expand 
+        - Models at each node like Learned Index       
+                - Each leaf node there is a sorted arrays of keys with exponential search
+        - For lookup, start from the root node and the model predicts the next model till the leaf node, the leaf node predicts the position of the key over the sorted array of keys
+
+Key Concepts:
+    Gaped array:
+        - Learned Index has a dense array, a packed array structure -> for insertion create a new array with additional size and copy over all the array elements from the old to the new array -> O(n)
+        - The B+ tree has array with free space at the end, which does not need to create new array for insert but shifts happen to make space for new element -> O(n)
+        - The Gaped Array has strategically spaced gaps all over the array, for insert minimal number of shifts are needed for making a gap for the new key -> O(log n)
+        
+    Model based inserts:
+        - Model predicts the position of the new element in the gaped array, that reduces the error and faster reads
+        
+    Exponential search for lookup:
+        - Model based insert ensures less error and for wrong prediction (unsorted array), exponential search gives faster read than binary search 
+
+    Adaptive structure:
+        - Adaptation required when the model within a node is inaccurate itself or the gaped array are full
+            - Flexible tree structure
+            - Split nodes sideways (like B+), downwards and expand nodes (with new gaped array)
+            - For node expansion, the model can be kept as same but the array can be assigned with new gaps  
+            - Flexibility for when to retrain the model and when not 
+            
+Key Idea:            
+   All decisions are made to maximize the performance
+        - Use linear cost model of query run-time (lookup or insert)
+        - No hand-tuning like the Learned Index, the tree structure is based on cost model automatically 
+        - Robust to data and change is workloads cause ALEX re-organizes itself to maximize performance
+
+
